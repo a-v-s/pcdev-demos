@@ -31,10 +31,11 @@
 // Matching header
 #include "Device.hpp"
 
-// C library includes
-#include <stdarg.h>
-#include <string.h>
-
+extern "C" {
+	// C library includes
+	#include <stdarg.h>
+	#include <string.h>
+}
 // C++ library includes
 #include <chrono>
 #include <deque>
@@ -43,9 +44,10 @@
 // External library includes
 #include <libusb.h>
 
-// Internal library includes
-#include "protocol.h"
-
+extern "C" {
+	// Internal library includes
+	#include "protocol.h"
+	}
 // Project includes
 #include "threadname.hpp"
 
@@ -264,12 +266,7 @@ void Device::process_recv_queue_code(Device *dev) {
             uint8_t *buffer = data.data() + 1;
             (void)size;
 
-            bscp_protocol_packet_t *forward_packet = (bscp_protocol_packet_t *)(buffer);
-
-            if (forward_packet->head.cmd == BSCP_CMD_FORWARD) {
-                bscp_protocol_forward_t *forward_data = (bscp_protocol_forward_t *)(forward_packet->data);
-                printf("Received forwarded data from %02X \n", forward_data->from);
-            }
+            protocol_parse(buffer, size, PROTOCOL_TRANSPORT_USB, 0);
 
             dev->m_recv_queue.pop_front();
         }
