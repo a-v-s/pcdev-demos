@@ -37,9 +37,9 @@ class Device : public IDevice {
     libusb_device_handle *m_usb_handle = nullptr;
 
     struct libusb_device_descriptor m_usb_descriptor_device = {};
-    unsigned char m_usb_string_manufacturer[256];
-    unsigned char m_usb_string_product[256];
-    unsigned char m_usb_string_serial[256];
+    unsigned char m_usb_string_manufacturer[256] = {};
+    unsigned char m_usb_string_product[256] = {};
+    unsigned char m_usb_string_serial[256] = {};
 
 
     //std::string m_serial = {};

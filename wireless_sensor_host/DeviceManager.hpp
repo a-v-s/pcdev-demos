@@ -73,25 +73,23 @@ class DeviceManager {
 
     bool libusb_hotplug_callback_thread_running = true;
     static void libusb_hotplug_callback_thread_code(DeviceManager *dm);
-    std::thread libusb_hotplug_callback_thread;
-    std::condition_variable libusb_hotplug_callback_cv;
-    std::mutex libusb_hotplug_callback_mutex;
+    std::thread libusb_hotplug_callback_thread = {};
+    std::condition_variable libusb_hotplug_callback_cv  = {};
+    std::mutex libusb_hotplug_callback_mutex = {};
 
-    libusb_hotplug_callback_handle hotplug_handle;
+    libusb_hotplug_callback_handle hotplug_handle = {};
 
     static int LIBUSB_CALL libusb_hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev,
                                                    libusb_hotplug_event event, void *user_data);
 
-    std::queue<libusb_hotplug_event_t> libusb_hotplug_event_queue;
+    std::queue<libusb_hotplug_event_t> libusb_hotplug_event_queue = {};
 
-    std::thread libusb_handle_events_thread;
+    std::thread libusb_handle_events_thread= {};
     bool libusb_handle_events_thread_running = true;
     static void libusb_handle_events_thread_code(DeviceManager *dm);
 
-    static int debug_printf(const char *format, ...);
-
-    std::map<std::string, Device *> mapSerial2Device;
-    std::map<libusb_device *, Device *> mapUsb2Device;
+    std::map<std::string, Device *> mapSerial2Device = {};
+    std::map<libusb_device *, Device *> mapUsb2Device = {};
 };
 
 #endif /* SRC_DEVICEMANAGER_H_ */

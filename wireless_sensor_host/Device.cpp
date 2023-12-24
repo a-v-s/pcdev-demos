@@ -149,8 +149,8 @@ void Device::libusb_transfer_cb(struct libusb_transfer *xfr) {
         if (xfr->endpoint & 0x80) {
             std::vector<uint8_t> recvData;
 
-            recvData.resize(1 + xfr->actual_length);
-
+            //recvData.resize(1 + xfr->actual_length);
+            recvData.resize(2 + xfr->actual_length, 0);
             memcpy(1 + recvData.data(), xfr->buffer, xfr->actual_length);
             recvData[0] = xfr->endpoint;
             std::unique_lock<std::mutex> lk(_this->m_recv_queue_mutex);
@@ -266,7 +266,7 @@ void Device::process_recv_queue_code(Device *dev) {
             uint8_t *buffer = data.data() + 1;
             (void)size;
 
-            protocol_parse(buffer, size, PROTOCOL_TRANSPORT_USB, 0);
+            protocol_parse(buffer, size, PROTOCOL_TRANSPORT_USB, data[0]);
 
             dev->m_recv_queue.pop_front();
         }
