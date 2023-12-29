@@ -3,7 +3,7 @@ TARGET=wireless_sensor_host
 PCDEV_ROOT=../../pcdev
 UCDEV_ROOT=../../../uc/ucdev
 
-LIBS += libusb-1.0 libmosquittopp
+LIBS += libusb-1.0 libmosquittopp nlohmann_json
 
 CXX_SRC 	 += main.cpp
 CXX_SRC 	 += Device.cpp

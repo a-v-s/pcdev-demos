@@ -29,6 +29,11 @@ class mqqt_test : public mosqpp::mosquittopp
 
 		int publish_sensorvalue(int node_id, int sensor_id, const char* sensor_type, const char * sensor_value);
 
+
+		int publish_sensorvalue(int unit_id, int sens_id, const char* device_class, const char * value, const char *unit_of_measurement);
+		int publish_sensorvalue(int node_id, int sens_id, const char *device_class, float value, const char *unit_of_measurement) ;
+
+
 };
 
 
