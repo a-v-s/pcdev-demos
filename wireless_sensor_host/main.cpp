@@ -139,7 +139,13 @@ int main(int argc, char *argv[]) {
 		if (d) {
 			puts("Requesting data from 1");
 			d->testForwardGetData(1);
-			d->testForwardOnOff(0x10 , 0);
+		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		d = m_dm.getDevice("LK9L0MF9");
+		if (d) {
+			puts("Testing switch at 0x10, turning off");
+			 d->testForwardOnOff(0x10 , 0);
 		}
 
 		std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -147,8 +153,15 @@ int main(int argc, char *argv[]) {
 		if (d) {
 			puts("Requesting data from 2");
 			d->testForwardGetData(2);
+		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		d = m_dm.getDevice("LK9L0MF9");
+		if (d) {
+			puts("Testing switch at 0x10, turning on");
 			d->testForwardOnOff(0x10 , 1);
 		}
+
 	}
 
 	mosqpp::lib_cleanup();
