@@ -139,6 +139,7 @@ int main(int argc, char *argv[]) {
 		if (d) {
 			puts("Requesting data from 1");
 			d->testForwardGetData(1);
+			d->testForwardOnOff(0x10 , 0);
 		}
 
 		std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -146,6 +147,7 @@ int main(int argc, char *argv[]) {
 		if (d) {
 			puts("Requesting data from 2");
 			d->testForwardGetData(2);
+			d->testForwardOnOff(0x10 , 1);
 		}
 	}
 

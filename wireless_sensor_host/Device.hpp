@@ -33,6 +33,8 @@ class Device : public IDevice {
     libusb_device *getLibUsbDevice() { return m_usb_device; }
 
     int testForwardGetData(int node_id);
+    int testForwardOnOff(int node_id, bool onoff);
+
   private:
     libusb_device *m_usb_device  = nullptr;
     libusb_device_handle *m_usb_handle = nullptr;
