@@ -32,8 +32,11 @@ class Device : public IDevice {
     std::string getSerial() { return (char*)m_usb_string_serial; }
     libusb_device *getLibUsbDevice() { return m_usb_device; }
 
+
+    int testForwardTime(int node_id);
     int testForwardGetData(int node_id);
     int testForwardOnOff(int node_id, bool onoff);
+    int testForwardGetInfo(int node_id);
 
   private:
     libusb_device *m_usb_device  = nullptr;

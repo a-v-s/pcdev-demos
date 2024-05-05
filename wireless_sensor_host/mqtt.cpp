@@ -13,12 +13,12 @@
 #include <mosquittopp.h>
 #include <nlohmann/json.hpp>
 
-int mqqt_test::connect_to_server(const char *id, const char *host, int port) {
-
-	int keepalive = 60;
-	mosquittopp(id, true);
-	return connect(host, port, keepalive);
-}
+//int mqqt_test::connect_to_server(const char *id, const char *host, int port) {
+//
+//	int keepalive = 60;
+//	mosquittopp(id, true);
+//	return connect(host, port, keepalive);
+//}
 
 mqqt_test::~mqqt_test() {
 }
@@ -43,87 +43,108 @@ void mqqt_test::on_subscribe(int mid, int qos_count, const int *granted_qos) {
 void mqqt_test::on_publish(int mid) {
 	printf("MQTT message published, mid %d\n", mid);
 }
-;
 
-int mqqt_test::publish_sensorvalue(int sensor_id, int sensor_type,
-		float value) {
-	char topic[256];
-	snprintf(topic, sizeof(topic), "blaatschaap/sensor/%d/%d", sensor_id,
-			sensor_type);
-	char message[256];
-	snprintf(message, sizeof(message), "%f", value);
-	int mid = 0;
-	int result = publish(&mid, topic, strlen(message), message);
-	printf("Publish message mid %d status %d\n", mid, result);
-	return result;
-}
+int mqqt_test::publish_sensor(int node_id, int sens_id,
+		const char *device_class, const char *unit_of_measurement) {
 
-int mqqt_test::publish_sensorvalue(int node_id, int sensor_id,
-		const char *sensor_type, const char *sensor_value) {
-	char topic[256];
-	snprintf(topic, sizeof(topic), "blaatschaap/sensor/%d/%d/%s", node_id,
-			sensor_id, sensor_type);
-	int mid = 0;
-	int result = publish(&mid, topic, strlen(sensor_value), sensor_value);
-	printf("Publish message mid %d status %d\n", mid, result);
-	return result;
-}
-
-int mqqt_test::publish_sensorvalue(int node_id, int sens_id,
-		const char *device_class, const char *value,
-		const char *unit_of_measurement) {
 	char config_topic[256];
 	char state_topic[256];
 	nlohmann::json json_config;
 	nlohmann::json json_value;
 
 	snprintf(config_topic, sizeof(config_topic),
-			"homeassistant/sensor/unit_%02x/sensor_%02x_%s/config",
-			node_id, sens_id, device_class);
+			"homeassistant/sensor/unit_%02x/%s_%02x/config", node_id,
+			device_class, sens_id);
 	snprintf(state_topic, sizeof(state_topic),
-			"homeassistant/sensor/unit_%02x/sensor_%02x_%s/value",
-				node_id, sens_id, device_class);
+			"homeassistant/sensor/unit_%02x/value", node_id);
+
+	char value_template[256];
+	snprintf(value_template, sizeof(value_template), "{{value_json.%s_%02x}}",
+			device_class, sens_id);
 
 	json_config["device_class"] = device_class;
 	json_config["state_topic"] = state_topic;
 	json_config["unit_of_measurement"] = unit_of_measurement;
-	json_config["value_template"] = "{{value}}";
+	json_config["value_template"] = value_template;
 
-	char unique_id_buff[32];
-	snprintf(unique_id_buff, sizeof(unique_id_buff), "BS%02x%02x%s",
-			node_id & 0xFF, sens_id & 0xFF, device_class);
-	char name_buff[16];
-	snprintf(name_buff, sizeof(name_buff), "BS%02x%02x",
-				node_id & 0xFF, sens_id & 0xFF);
-	json_config["unique_id"] = unique_id_buff;
-	json_config["device"]["name"] = name_buff;
+	char unique_id[32];
+	snprintf(unique_id, sizeof(unique_id), "sensor/%02X/%02X", node_id & 0xFF,
+			sens_id & 0xFF);
+	json_config["unique_id"] = unique_id;
+
+	char name_buff[32];
+	snprintf(name_buff, sizeof(name_buff), "%02X", node_id & 0xFF);
 	json_config["device"]["identifiers"] = name_buff;
-	json_config["device"]["model"] = "Blaat";
-
-
 
 	int mid;
 	auto json_config_dump = json_config.dump();
 	int result = publish(&mid, config_topic, json_config_dump.length(),
 			json_config_dump.c_str());
-	printf("Publish message mid %d status %d\n", mid, result);
-
-	json_value = value;
-	auto json_value_dump = json_value.dump();
-//	std::this_thread::sleep_for(std::chrono::seconds(1));
-	result = publish(&mid, state_topic, strlen(value), value);
-	//result = publish(&mid, state_topic, json_value_dump.length(), json_value_dump.c_str());
-	printf("Publish message mid %d status %d\n", mid, result);
-
+	printf("Publish configuration message mid %d status %d\n", mid, result);
 	return result;
 
 }
 
-
 int mqqt_test::publish_sensorvalue(int node_id, int sens_id,
-		const char *device_class, float value,
-		const char *unit_of_measurement) {
-	char strvalue[16];
-	snprintf(strvalue,sizeof(strvalue),"%f",value);
-	return publish_sensorvalue(node_id,sens_id, device_class,strvalue, unit_of_measurement);
+		const char *device_class, float value) {
+	char state_topic[256];
+	snprintf(state_topic, sizeof(state_topic),
+			"homeassistant/sensor/unit_%02x/value", node_id);
+	nlohmann::json json_value;
+	char value_name[256];
+	snprintf(value_name, sizeof(value_name), "%s_%02x", device_class, sens_id);
+	json_value[value_name] = value;
+	auto json_value_dump = json_value.dump();
+	int mid;
+	int result = publish(&mid, state_topic, json_value_dump.length(),
+			json_value_dump.c_str());
+	printf("Publish value message mid %d status %d\n", mid, result);
+	return result;
+}
+
+int mqqt_test::publish_switch(int node_id, int switch_id) {
+
+	char config_topic[256];
+	char state_topic[256];
+	char command_topic[256];
+	nlohmann::json json_config;
+	nlohmann::json json_value;
+
+	snprintf(config_topic, sizeof(config_topic),
+			"homeassistant/switch/unit_%02x/switch_%02x/config", node_id,
+			switch_id);
+	snprintf(state_topic, sizeof(state_topic),
+			"homeassistant/switch/unit_%02x/value", node_id);
+
+	snprintf(command_topic, sizeof(command_topic),
+			"homeassistant/switch/unit_%02x/set/%02x", node_id, switch_id);
+
+	json_config["state_topic"] = state_topic;
+	json_config["command_topic"] = command_topic;
+
+	json_config["payload_on"] = 1;
+	json_config["payload_off"] = 0;
+	json_config["state_on"] = 1;
+	json_config["state_off"] = 0;
+
+//	char value_template[256];
+//	snprintf(value_template, sizeof(value_template),
+//			"{{value_json.switch_%02x}}", switch_id);
+
+	char unique_id[32];
+	snprintf(unique_id, sizeof(unique_id), "switch/%02X/%02X", node_id & 0xFF,
+			switch_id & 0xFF);
+	json_config["unique_id"] = unique_id;
+
+	char name_buff[32];
+	snprintf(name_buff, sizeof(name_buff), "%02X", node_id & 0xFF);
+	json_config["device"]["identifiers"] = name_buff;
+
+	int mid;
+	auto json_config_dump = json_config.dump();
+	int result = publish(&mid, config_topic, json_config_dump.length(),
+			json_config_dump.c_str());
+	printf("Publish configuration message mid %d status %d\n", mid, result);
+	return result;
+
 }

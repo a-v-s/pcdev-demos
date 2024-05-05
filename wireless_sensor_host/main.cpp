@@ -14,6 +14,7 @@ static mqqt_test *mp_mqtt;
 extern "C" {
 #include "protocol.h"
 #include "sensor_protocol.h"
+#include "switch_protocol.h"
 
 bscp_handler_status_t forward_handler(bscp_protocol_packet_t *data,
 		protocol_transport_t transport, uint32_t param) {
@@ -111,7 +112,7 @@ bscp_handler_status_t sensordata_handler(bscp_protocol_packet_t *packet,
 		break;
 	}
 
-	mp_mqtt->publish_sensorvalue(unit_id, sens_id, device_class, value, unit_of_measurement);
+	mp_mqtt->publish_sensorvalue(unit_id, sens_id, device_class, value_float);
 
 
 //	mp_mqtt->publish_sensorvalue(h.from, sensordata->id, sensortype,
@@ -120,10 +121,59 @@ bscp_handler_status_t sensordata_handler(bscp_protocol_packet_t *packet,
 }
 }
 
+bscp_handler_status_t info_handler(bscp_protocol_packet_t *data,
+		protocol_transport_t transport, uint32_t param) {
+	puts("Received info");
+	bscp_protocol_info_t * info = (bscp_protocol_info_t *)data->data;
+	protocol_transport_header_t header = {.as_uint32 = param };
+
+	int count = (data->head.size - sizeof (data->head) ) / sizeof (bscp_protocol_info_t);
+	for (int i = 0 ; i < count ; i++) {
+		printf("CMD %02X FLAGS %02X INDEX %02X\n",
+			info[i].cmd,
+			info[i].flags,
+			info[i].index);
+
+		const char * device_class = {};
+		const char * unit_of_measurement = {};
+
+		switch(info[i].cmd) {
+
+		case BSCP_CMD_SENSOR_ENVIOREMENTAL_VALUE:
+			switch(info[i].flags){
+			case (1 << bsprot_sensor_enviromental_temperature):
+				device_class = "temperature";
+				unit_of_measurement = "°C";
+					break;
+			case (1 << bsprot_sensor_enviromental_illuminance):
+				device_class = "illuminance";
+				unit_of_measurement = "lux";
+					break;
+			default:
+				continue;
+			}
+			mp_mqtt->publish_sensor(header.from, info[i].index, device_class, unit_of_measurement);
+			break;
+		case BSCP_CMD_SWITCH:
+			mp_mqtt->publish_switch(header.from, info[i].index);
+			break;
+		default:
+			break;
+		}
+
+
+
+	}
+
+	return BSCP_HANDLER_STATUS_OK;
+}
+
 int main(int argc, char *argv[]) {
+	protocol_register_command(info_handler, BSCP_CMD_INFO);
+
 	protocol_register_command(forward_handler, BSCP_CMD_FORWARD);
-	protocol_register_command(sensordata_handler,
-	BSCP_CMD_SENSOR_ENVIOREMENTAL_VALUE);
+	protocol_register_command(sensordata_handler, BSCP_CMD_SENSOR_ENVIOREMENTAL_VALUE);
+
 
 	mosqpp::lib_init();
 	mp_mqtt = new mqqt_test();
@@ -133,34 +183,39 @@ int main(int argc, char *argv[]) {
 
 	m_dm.start();
 	Device * d = nullptr;
+
+	bool time_synced = false;
 	while (1) {
+
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		d = m_dm.getDevice("LK9L0MF9");
 		if (d) {
-			puts("Requesting data from 1");
-			d->testForwardGetData(1);
+			puts("Getting info for 0x10");
+			 d->testForwardGetInfo(0x10);
+
 		}
 
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 		d = m_dm.getDevice("LK9L0MF9");
 		if (d) {
-			puts("Testing switch at 0x10, turning off");
-			 d->testForwardOnOff(0x10 , 0);
+
+			puts("Getting data for 0x10");
+			 d->testForwardGetData(0x10);
 		}
 
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-		d = m_dm.getDevice("LK9L0MF9");
-		if (d) {
-			puts("Requesting data from 2");
-			d->testForwardGetData(2);
-		}
 
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-		d = m_dm.getDevice("LK9L0MF9");
-		if (d) {
-			puts("Testing switch at 0x10, turning on");
-			d->testForwardOnOff(0x10 , 1);
-		}
+
+//		if (!time_synced) {
+//			d = m_dm.getDevice("LK9L0MF9");
+//			std::this_thread::sleep_for(std::chrono::seconds(1));
+//			if (d) {
+//				puts("Setting time");
+//				 d->testForwardTime(0x10);
+//				 time_synced = true;
+//				 break;
+//			}
+//		}
+
 
 	}
 
